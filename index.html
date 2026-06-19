@@ -1,0 +1,1938 @@
+<!-- made by: @k_aljalood -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChronoCode Station</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght=400;500;700&display=swap');
+
+        :root {
+            --bg-color: #06070a;
+            --container-bg: #0e1017;
+            --header-bg: rgba(0, 0, 0, 0.16);
+            --widget-bg: rgba(0, 0, 0, 0.16);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-main: #abb2bf;
+            --keyword: #ff7b72;
+            --property: #79c0ff;
+            --string: #8ddb8c;
+            --number: #ffab70;
+            --accent: #58a6ff;
+            --accent-glow: rgba(88, 166, 255, 0.15);
+            --font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+            --track-color: rgba(255, 255, 255, 0.03);
+            --active-line-bg: rgba(0, 0, 0, 0.16);
+            --container-shadow: 0 20px 45px rgba(0, 0, 0, 0.6), 0 0 30px var(--accent-glow);
+            --grid-color: rgba(255, 255, 255, 0.055);
+        }
+
+        .theme-light {
+            --bg-color: #f6f8fa;
+            --container-bg: #ffffff;
+            --header-bg: rgba(27, 31, 35, 0.04);
+            --widget-bg: rgba(27, 31, 35, 0.04);
+            --border-color: rgba(27, 31, 35, 0.08);
+            --text-main: #24292f;
+            --keyword: #cf222e;
+            --property: #0550ae;
+            --string: #116329;
+            --number: #953800;
+            --accent: #0969da;
+            --accent-glow: rgba(9, 105, 218, 0.08);
+            --track-color: rgba(27, 31, 35, 0.04);
+            --active-line-bg: rgba(27, 31, 35, 0.04);
+            --container-shadow: 0 20px 40px rgba(0, 0, 0, 0.05), 0 0 20px var(--accent-glow);
+            --grid-color: rgba(0, 0, 0, 0.055);
+        }
+
+        .no-transitions,
+        .no-transitions * {
+            transition: none !important;
+            animation: none !important;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            position: relative;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: var(--font-family);
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1200px;
+            transition: background-color 0.8s cubic-bezier(0.25, 1, 0.5, 1), color 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        #canvas-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .workspace {
+            position: absolute;
+            z-index: 2;
+            width: 680px;
+            height: 346px;
+            background: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: var(--container-shadow);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            container-type: size;
+        }
+
+        .workspace.ready {
+            transition: border 0.8s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.8s cubic-bezier(0.25, 1, 0.5, 1), background 0.8s cubic-bezier(0.25, 1, 0.5, 1), transform 0.5s cubic-bezier(0.03, 0.98, 0.52, 0.99), opacity 0.5s ease;
+        }
+
+        .workspace.animating {
+            transition: border 0.8s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.8s cubic-bezier(0.25, 1, 0.5, 1), background 0.8s cubic-bezier(0.25, 1, 0.5, 1), transform 0.5s cubic-bezier(0.03, 0.98, 0.52, 0.99), opacity 0.5s ease, width 0.3s cubic-bezier(0.25, 1, 0.5, 1), height 0.3s cubic-bezier(0.25, 1, 0.5, 1), top 0.3s cubic-bezier(0.25, 1, 0.5, 1), left 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .workspace.minimized {
+            min-height: 0 !important;
+        }
+
+        .workspace.minimized .window-body {
+            pointer-events: none;
+        }
+
+        .window-header {
+            font-size: max(8px, 2.45cqw);
+            height: 2.77em;
+            background: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0;
+            flex-shrink: 0;
+            transition: background 0.8s cubic-bezier(0.25, 1, 0.5, 1), border-bottom 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .mac-controls {
+            display: flex;
+            gap: 0.61em;
+            padding-left: 1.08em;
+            align-items: center;
+            width: 5.08em;
+            opacity: 1;
+            overflow: hidden;
+        }
+
+        .workspace.switching-layout .mac-controls {
+            transition: width 0.5s cubic-bezier(0.25, 1, 0.5, 1), padding-left 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .layout-win .mac-controls {
+            width: 0 !important;
+            padding-left: 0 !important;
+            opacity: 0 !important;
+            pointer-events: none;
+        }
+
+        .win-controls {
+            display: flex;
+            height: 100%;
+            align-items: center;
+            font-size: 0.77em;
+            font-weight: bold;
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+            color: var(--text-main);
+            margin-left: auto;
+            pointer-events: none;
+        }
+
+        .workspace.switching-layout .win-controls {
+            transition: width 0.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s cubic-bezier(0.25, 1, 0.5, 1), color 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .layout-win .win-controls {
+            opacity: 1 !important;
+            width: 13.8em !important;
+            pointer-events: auto;
+        }
+
+        .win-btn {
+            width: 4.6em;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .win-btn:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .theme-light .win-btn:hover {
+            background-color: rgba(27, 31, 35, 0.05);
+        }
+
+        .win-btn.close:hover {
+            background-color: #e81123 !important;
+            color: #ffffff !important;
+        }
+
+        .control-dot {
+            width: 0.92em;
+            height: 0.92em;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(0, 0, 0, 0.55);
+            flex-shrink: 0;
+            cursor: pointer;
+        }
+        .dot-close { background: #ff5f56; }
+        .dot-minimize { background: #ffbd2e; }
+        .dot-maximize { background: #27c93f; }
+
+        .control-dot svg {
+            width: 46% !important;
+            height: 46% !important;
+            opacity: 0;
+            fill: none !important;
+            transition: opacity 0.15s ease;
+        }
+
+        .mac-controls:hover .control-dot svg {
+            opacity: 1;
+        }
+
+        .icon-minimize-zoom {
+            display: none;
+        }
+
+        .workspace.maximized .icon-maximize {
+            display: none !important;
+        }
+
+        .workspace.maximized .icon-minimize-zoom {
+            display: block !important;
+        }
+
+        .win-icon-restore {
+            display: none;
+        }
+
+        .workspace.maximized .win-icon-maximize {
+            display: none !important;
+        }
+
+        .workspace.maximized .win-icon-restore {
+            display: block !important;
+        }
+
+        .win-btn svg {
+            width: 1em !important;
+            height: 1em !important;
+        }
+
+        .window-tabs {
+            display: flex;
+            gap: 0.23em;
+            margin-left: 1.15em;
+            height: 100%;
+            align-items: flex-end;
+        }
+
+        .workspace.switching-layout .window-tabs {
+            transition: margin-left 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .layout-win .window-tabs {
+            margin-left: 1.08em;
+        }
+
+        @keyframes chronoFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes chronoCodeSlide {
+            from {
+                opacity: 0;
+                transform: translateY(12px) skewY(0.5deg);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) skewY(0deg);
+            }
+        }
+
+        .tab_anim {
+            animation: chronoFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .tab {
+            position: relative;
+            padding: 0.46em 0.92em;
+            background: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--container-bg);
+            margin-bottom: -1px;
+            border-top-left-radius: 0.38em;
+            border-top-right-radius: 0.38em;
+            font-size: 1em;
+            display: flex;
+            align-items: center;
+            gap: 0.46em;
+            color: var(--text-main);
+            opacity: 0.6;
+            z-index: 10;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.8s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.8s cubic-bezier(0.25, 1, 0.5, 1), color 0.8s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.5s ease, width 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .tab.active {
+            color: var(--accent);
+            opacity: 1;
+            border-bottom: 1px solid var(--container-bg);
+            z-index: 11;
+        }
+
+        .tab-title {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.46em;
+        }
+
+        .tab-icon {
+            color: var(--keyword);
+            font-weight: bold;
+            transition: color 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .tab-chevron {
+            width: 0.55em;
+            height: 0.55em;
+            margin-left: 0.38em;
+            stroke: currentColor;
+            fill: none;
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            transform-origin: center;
+            flex-shrink: 0;
+        }
+
+        .tab.dropdown-open .tab-chevron {
+            transform: rotate(180deg);
+        }
+
+        .lang-dropdown {
+            position: absolute;
+            top: calc(100% + 0.45em);
+            left: 0;
+            background: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 0.57em;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 8px var(--accent-glow);
+            display: flex;
+            flex-direction: column;
+            padding: 0.43em;
+            gap: 0.14em;
+            z-index: 100;
+            min-width: 10em;
+            opacity: 0;
+            transform: translateY(-0.3em) scale(0.98);
+            pointer-events: none;
+            transition: opacity 0.35s cubic-bezier(0.25, 1, 0.5, 1), transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .lang-dropdown.show {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .theme-light .lang-dropdown {
+            background: #ffffff;
+            border-color: rgba(27, 31, 35, 0.15);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06), 0 0 8px var(--accent-glow);
+        }
+
+        .lang-option {
+            padding: 0.43em 0.85em;
+            font-size: 0.9em;
+            color: var(--text-main);
+            border-radius: 0.28em;
+            text-align: left;
+            transform: translateY(0.3em);
+            opacity: 0;
+            transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1), background-color 0.15s, color 0.15s;
+        }
+
+        .lang-dropdown.show .lang-option {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .lang-dropdown.show .lang-option:nth-child(1) { transition-delay: 0.02s; }
+        .lang-dropdown.show .lang-option:nth-child(2) { transition-delay: 0.04s; }
+        .lang-dropdown.show .lang-option:nth-child(3) { transition-delay: 0.06s; }
+        .lang-dropdown.show .lang-option:nth-child(4) { transition-delay: 0.08s; }
+        .lang-dropdown.show .lang-option:nth-child(5) { transition-delay: 0.10s; }
+        .lang-dropdown.show .lang-option:nth-child(6) { transition-delay: 0.12s; }
+        .lang-dropdown.show .lang-option:nth-child(7) { transition-delay: 0.14s; }
+
+        .window-body {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1.3fr 0.7fr;
+            overflow: hidden;
+            container-type: size;
+        }
+
+        .editor-section {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border-right: 1px solid var(--border-color);
+            transition: border-color 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .editor-viewport {
+            flex: 1;
+            padding: 8px 12px;
+            overflow: hidden;
+            font-size: min(2.18cqw, 4.45cqh);
+            line-height: 1.4;
+            scrollbar-width: none;
+        }
+
+        .editor-viewport::-webkit-scrollbar {
+            display: none;
+        }
+
+        .code-line {
+            display: flex;
+            align-items: center;
+            border-radius: 3px;
+            padding: 0.5px 0;
+            transition: background-color 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            animation: chronoFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .code-line.active {
+            background-color: var(--active-line-bg);
+        }
+
+        .line-number {
+            width: 2.3em;
+            color: rgba(255, 255, 255, 0.15);
+            text-align: right;
+            padding-right: 8px;
+            font-size: 0.8em;
+            user-select: none;
+            transition: color 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .theme-light .line-number {
+            color: rgba(27, 31, 35, 0.25);
+        }
+
+        .line-content {
+            flex: 1;
+            white-space: pre;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .syntax-keyword, .syntax-property, .syntax-string, .syntax-number, .syntax-comment {
+            transition: color 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .syntax-keyword { color: var(--keyword); font-weight: bold; }
+        .syntax-property { color: var(--property); }
+        .syntax-string { color: var(--string); }
+        .syntax-number { color: var(--number); }
+        .syntax-comment { color: rgba(255, 255, 255, 0.25); font-style: italic; }
+
+        .theme-light .syntax-comment {
+            color: rgba(27, 31, 35, 0.35);
+        }
+
+        .config-clickable {
+            cursor: pointer;
+        }
+
+        .widget-section {
+            position: relative;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: var(--widget-bg);
+            transition: background 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+            overflow: hidden;
+            font-size: max(8px, 2.45cqw);
+        }
+
+        .analog-container {
+            position: relative;
+            width: min(94%, 90cqh);
+            height: min(94%, 90cqh);
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .analog-clock-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .clock-ring-track {
+            fill: none;
+            stroke: var(--track-color);
+            stroke-width: 4;
+            transition: stroke 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .clock-ring-progress {
+            fill: none;
+            stroke: var(--accent);
+            stroke-width: 4;
+            stroke-linecap: round;
+            stroke-dasharray: 534.07;
+            stroke-dashoffset: 534.07;
+            filter: drop-shadow(0px 0px 3px var(--accent));
+        }
+
+        .workspace.ready .clock-ring-progress {
+            transition: stroke-dashoffset 0.08s linear, stroke 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .clock-center-dot {
+            fill: var(--keyword);
+            stroke: var(--text-main);
+            stroke-width: 1.5px;
+            transition: fill 0.8s cubic-bezier(0.25, 1, 0.5, 1), stroke 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        #restore-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 54px;
+            height: 54px;
+            background: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+            cursor: pointer;
+            box-shadow: var(--container-shadow);
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.8);
+            transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            z-index: 9999;
+        }
+
+        #restore-btn.show {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1);
+        }
+
+        #restore-btn:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            transform: scale(1.1);
+        }
+
+        .theme-light #restore-btn:hover {
+            background-color: rgba(27, 31, 35, 0.05);
+        }
+
+        #restore-btn svg {
+            width: 24px !important;
+            height: 24px !important;
+        }
+
+        .resizer {
+            position: absolute;
+            z-index: 1000;
+        }
+        .resizer-t { top: 0; left: 8px; right: 8px; height: 5px; cursor: ns-resize; }
+        .resizer-r { top: 8px; bottom: 8px; right: 0; width: 5px; cursor: ew-resize; }
+        .resizer-b { bottom: 0; left: 8px; right: 8px; height: 5px; cursor: ns-resize; }
+        .resizer-l { top: 8px; bottom: 8px; left: 0; width: 5px; cursor: ew-resize; }
+        .resizer-tl { top: 0; left: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+        .resizer-tr { top: 0; right: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+        .resizer-bl { bottom: 0; left: 0; width: 8px; height: 8px; cursor: nesw-resize; }
+        .resizer-br { bottom: 0; right: 0; width: 8px; height: 8px; cursor: nwse-resize; }
+    </style>
+</head>
+<body class="no-transitions">
+
+    <canvas id="canvas-bg"></canvas>
+
+    <div class="workspace" id="container-element">
+        <div class="resizer resizer-t"></div>
+        <div class="resizer resizer-r"></div>
+        <div class="resizer resizer-b"></div>
+        <div class="resizer resizer-l"></div>
+        <div class="resizer resizer-tl"></div>
+        <div class="resizer resizer-tr"></div>
+        <div class="resizer resizer-bl"></div>
+        <div class="resizer resizer-br"></div>
+
+        <div class="window-header">
+            <div class="mac-controls">
+                <div class="control-dot dot-close">
+                    <svg viewBox="0 0 10 10" width="5.5" height="5.5" fill="none">
+                        <path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="control-dot dot-minimize">
+                    <svg viewBox="0 0 10 10" width="5.5" height="5.5" fill="none">
+                        <path d="M1 5h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="control-dot dot-maximize">
+                    <svg class="icon-maximize" viewBox="0 0 10 10" width="5.5" height="5.5" fill="none">
+                        <path d="M1 1h3M1 1v3M1 1l3.5 3.5M9 9h-3M9 9v-3M9 9L5.5 5.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                    </svg>
+                    <svg class="icon-minimize-zoom" viewBox="0 0 10 10" width="5.5" height="5.5" fill="none">
+                        <path d="M1 1l3 3M4 1.5v2.5h-2.5M9 9l-3-3M6 8.5v-2.5h2.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+            </div>
+            <div class="window-tabs">
+                <div class="tab active" id="tab-code">
+                    <span class="tab-title" id="tab-title">
+                        <span class="tab-icon" id="tab-icon">JS</span>
+                        <span id="tab-filename">chronometer.js</span>
+                    </span>
+                    <svg class="tab-chevron" viewBox="0 0 10 10">
+                        <path d="M2 3l3 3 3-3" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <div class="lang-dropdown" id="lang-dropdown">
+                        <div class="lang-option" data-value="javascript">JavaScript</div>
+                        <div class="lang-option" data-value="typescript">TypeScript</div>
+                        <div class="lang-option" data-value="python">Python</div>
+                        <div class="lang-option" data-value="csharp">C#</div>
+                        <div class="lang-option" data-value="cpp">C++</div>
+                        <div class="lang-option" data-value="rust">Rust</div>
+                        <div class="lang-option" data-value="html">HTML</div>
+                    </div>
+                </div>
+                <div class="tab" id="tab-config">
+                    <span class="tab-icon">JSON</span>
+                    <span>config.json</span>
+                </div>
+            </div>
+
+            <div class="win-controls">
+                <div class="win-btn">
+                    <svg viewBox="0 0 10 10" width="10" height="10">
+                        <line x1="1" y1="5" x2="9" y2="5" stroke="currentColor" stroke-width="1"/>
+                    </svg>
+                </div>
+                <div class="win-btn">
+                    <svg class="win-icon-maximize" viewBox="0 0 10 10" width="10" height="10">
+                        <rect x="1" y="1" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1"/>
+                    </svg>
+                    <svg class="win-icon-restore" viewBox="0 0 10 10" width="10" height="10">
+                        <path d="M1 3h6v6H1zm2 0V1h6v6H7" fill="none" stroke="currentColor" stroke-width="1" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="win-btn close">
+                    <svg viewBox="0 0 10 10" width="10" height="10">
+                        <path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" stroke-width="1"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="window-body">
+            <div class="editor-section">
+                <div class="editor-viewport" id="editor-viewport"></div>
+            </div>
+
+            <div class="widget-section">
+                <div class="analog-container">
+                    <svg class="analog-clock-svg" viewBox="0 0 200 200">
+                        <circle class="clock-ring-track" cx="100" cy="100" r="85" />
+                        <circle class="clock-ring-progress" id="seconds-ring" cx="100" cy="100" r="85" transform="rotate(-90 100 100)" />
+                        <line id="hand-hour" x1="100" y1="100" x2="100" y2="55" stroke="currentColor" stroke-width="5" stroke-linecap="round" style="transform-origin: 100px 100px; color: var(--text-main); transition: color 0.8s cubic-bezier(0.25, 1, 0.5, 1);" />
+                        <line id="hand-minute" x1="100" y1="100" x2="100" y2="35" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" style="transform-origin: 100px 100px; color: var(--text-main); transition: color 0.8s cubic-bezier(0.25, 1, 0.5, 1);" />
+                        <line id="hand-second" x1="100" y1="100" x2="100" y2="20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="transform-origin: 100px 100px; color: var(--keyword); transition: color 0.8s cubic-bezier(0.25, 1, 0.5, 1);" />
+                        <circle class="clock-center-dot" cx="100" cy="100" r="6" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="restore-btn">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5"></polyline>
+            <line x1="12" y1="19" x2="20" y2="19"></line>
+        </svg>
+    </div>
+
+    <script>
+        const workspace = document.getElementById('container-element');
+        const elHandSecond = document.getElementById('hand-second');
+        const elHandMinute = document.getElementById('hand-minute');
+        const elHandHour = document.getElementById('hand-hour');
+        const elSecRing = document.getElementById('seconds-ring');
+        const elEditorViewport = document.getElementById('editor-viewport');
+        const elDropdown = document.getElementById('lang-dropdown');
+        const elTabCode = document.getElementById('tab-code');
+        const elTabConfig = document.getElementById('tab-config');
+
+        const canvas = document.getElementById('canvas-bg');
+        const ctx = canvas.getContext('2d');
+        let mouseX = window.innerWidth / 2;
+        let mouseY = window.innerHeight / 2;
+        let targetX = mouseX;
+        let targetY = mouseY;
+        let cachedGridColor = 'rgba(255, 255, 255, 0.055)';
+
+        let isInitialLoad = true;
+        let currentLanguage = localStorage.getItem('k_aljalood_chronocode_lang') || 'javascript';
+        let activeTabId = localStorage.getItem('k_aljalood_chronocode_active_tab') || 'code';
+        
+        let currentTheme = 'dark';
+        let currentLayout = 'mac';
+
+        let isTabTransitioning = false;
+
+        function resolveTheme() {
+            const savedTheme = localStorage.getItem('k_aljalood_chronocode_theme');
+            if (savedTheme) {
+                currentTheme = savedTheme;
+            } else {
+                currentTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+            }
+        }
+
+        function resolveLayout() {
+            const savedLayout = localStorage.getItem('k_aljalood_chronocode_layout');
+            if (savedLayout) {
+                currentLayout = savedLayout;
+            } else {
+                const ua = window.navigator.userAgent;
+                if (ua.indexOf('Mac') !== -1 || ua.indexOf('Macintosh') !== -1) {
+                    currentLayout = 'mac';
+                } else {
+                    currentLayout = 'win';
+                }
+            }
+        }
+
+        const themeMediaQuery = window.matchMedia('(prefers-color-scheme: light)');
+        try {
+            themeMediaQuery.addEventListener('change', () => {
+                if (!localStorage.getItem('k_aljalood_chronocode_theme')) {
+                    resolveTheme();
+                    applyInterfaceUpdates();
+                }
+            });
+        } catch (e) {
+            themeMediaQuery.addListener(() => {
+                if (!localStorage.getItem('k_aljalood_chronocode_theme')) {
+                    resolveTheme();
+                    applyInterfaceUpdates();
+                }
+            });
+        }
+
+        const fileNames = {
+            'javascript': 'chronometer.js',
+            'typescript': 'chronometer.ts',
+            'python': 'chronometer.py',
+            'csharp': 'chronometer.cs',
+            'cpp': 'chronometer.cpp',
+            'rust': 'chronometer.rs',
+            'html': 'chronometer.html'
+        };
+
+        const tabIcons = {
+            'javascript': 'JS',
+            'typescript': 'TS',
+            'python': 'Py',
+            'csharp': 'C#',
+            'cpp': 'C++',
+            'rust': 'Rs',
+            'html': 'HTML'
+        };
+
+        let isDragging = false;
+        let isResizing = false;
+        let currentResizer = null;
+        let dragStartX, dragStartY;
+        let initialWindowX, initialWindowY;
+        let startW, startH, startX, startY, startLeft, startTop;
+        let isClosing = false;
+        let isTransitioning = false;
+        let windowBounds = { left: 0, top: 0, width: 680, height: 346 };
+        let lastMousedownTime = 0;
+
+        let domRefs = {};
+        let enableCodeAnimation = false;
+        let enableTabAnimation = false;
+
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+        const btnMacClose = document.querySelector('.dot-close');
+        const btnMacMin = document.querySelector('.dot-minimize');
+        const btnMacMax = document.querySelector('.dot-maximize');
+
+        const btnWinMin = document.querySelector('.win-controls .win-btn:nth-child(1)');
+        const btnWinMax = document.querySelector('.win-controls .win-btn:nth-child(2)');
+        const btnWinClose = document.querySelector('.win-controls .win-btn.close');
+
+        const restoreBtn = document.getElementById('restore-btn');
+
+        btnMacClose.addEventListener('click', closeWindow);
+        btnWinClose.addEventListener('click', closeWindow);
+        restoreBtn.addEventListener('click', restoreWindow);
+
+        btnMacMin.addEventListener('click', minimizeWindow);
+        btnWinMin.addEventListener('click', minimizeWindow);
+
+        btnMacMax.addEventListener('click', () => maximizeWindow(false));
+        btnWinMax.addEventListener('click', () => maximizeWindow(false));
+
+        const header = document.querySelector('.window-header');
+        header.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.mac-controls') || e.target.closest('.win-controls') || e.target.closest('.window-tabs')) {
+                return;
+            }
+            
+            const now = Date.now();
+            if (now - lastMousedownTime < 250) {
+                maximizeWindow(false);
+                isDragging = false;
+                return;
+            }
+            lastMousedownTime = now;
+
+            if (workspace.classList.contains('maximized')) return;
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            initialWindowX = parseInt(workspace.style.left) || 0;
+            initialWindowY = parseInt(workspace.style.top) || 0;
+        });
+
+        elTabCode.addEventListener('click', (e) => {
+            const isOption = e.target.closest('.lang-option');
+            if (isOption) {
+                e.stopPropagation();
+                if (isTabTransitioning) return;
+                const selectedLang = isOption.getAttribute('data-value');
+                if (selectedLang !== currentLanguage) {
+                    isTabTransitioning = true;
+                    currentLanguage = selectedLang;
+                    localStorage.setItem('k_aljalood_chronocode_lang', currentLanguage);
+                    enableTabAnimation = true;
+                    updateTabInfo();
+                    enableTabAnimation = false;
+                    
+                    if (activeTabId === 'code') {
+                        enableCodeAnimation = true;
+                        updateLanguageTemplate();
+                        enableCodeAnimation = false;
+                    }
+                    setTimeout(() => {
+                        isTabTransitioning = false;
+                    }, 360);
+                }
+                closeDropdown();
+                return;
+            }
+
+            if (activeTabId !== 'code') {
+                switchToTab('code');
+            } else {
+                e.stopPropagation();
+                const isOpen = elDropdown.classList.contains('show');
+                if (isOpen) {
+                    closeDropdown();
+                } else {
+                    openDropdown();
+                }
+            }
+        });
+
+        elTabConfig.addEventListener('click', () => {
+            closeDropdown();
+            switchToTab('config');
+        });
+
+        elEditorViewport.addEventListener('click', (e) => {
+            const clickable = e.target.closest('.config-clickable');
+            if (!clickable) return;
+            
+            const configType = clickable.getAttribute('data-config');
+            if (configType === 'theme') {
+                const targetTheme = currentTheme === 'light' ? 'dark' : 'light';
+                localStorage.setItem('k_aljalood_chronocode_theme', targetTheme);
+                currentTheme = targetTheme;
+                applyInterfaceUpdates();
+                enableCodeAnimation = false;
+                updateConfigTemplate();
+            } else if (configType === 'layout') {
+                if (workspace.classList.contains('switching-layout') || isTransitioning) return;
+                const targetLayout = currentLayout === 'mac' ? 'win' : 'mac';
+                localStorage.setItem('k_aljalood_chronocode_layout', targetLayout);
+                currentLayout = targetLayout;
+                workspace.classList.add('switching-layout');
+                applyInterfaceUpdates();
+                setTimeout(() => {
+                    workspace.classList.remove('switching-layout');
+                    applyInterfaceUpdates();
+                }, 550);
+                enableCodeAnimation = false;
+                updateConfigTemplate();
+            }
+        });
+
+        function switchToTab(tabId) {
+            if (!isInitialLoad && activeTabId === tabId) return;
+            
+            activeTabId = tabId;
+            localStorage.setItem('k_aljalood_chronocode_active_tab', tabId);
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            
+            const animate = !isInitialLoad;
+            
+            if (tabId === 'code') {
+                document.getElementById('tab-code').classList.add('active');
+                enableCodeAnimation = animate;
+                updateLanguageTemplate();
+                enableCodeAnimation = false;
+            } else if (tabId === 'config') {
+                document.getElementById('tab-config').classList.add('active');
+                enableCodeAnimation = animate;
+                updateConfigTemplate();
+                enableCodeAnimation = false;
+            }
+        }
+
+        function openDropdown() {
+            elDropdown.classList.add('show');
+            elTabCode.classList.add('dropdown-open');
+            const options = elDropdown.querySelectorAll('.lang-option');
+            options.forEach(opt => {
+                if (opt.getAttribute('data-value') === currentLanguage) {
+                    opt.classList.add('selected');
+                } else {
+                    opt.classList.remove('selected');
+                }
+            });
+        }
+
+        function closeDropdown() {
+            elDropdown.classList.remove('show');
+            elTabCode.classList.remove('dropdown-open');
+        }
+
+        document.addEventListener('mousedown', (e) => {
+            if (!elTabCode.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        const resizers = document.querySelectorAll('.resizer');
+        resizers.forEach(resizer => {
+            resizer.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                if (workspace.classList.contains('maximized') || workspace.classList.contains('minimized')) return;
+                isResizing = true;
+                currentResizer = resizer;
+                startX = e.clientX;
+                startY = e.clientY;
+                startW = workspace.offsetWidth;
+                startH = workspace.offsetHeight;
+                startLeft = parseInt(workspace.style.left) || 0;
+                startTop = parseInt(workspace.style.top) || 0;
+            });
+        });
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function updateCachedGridColor() {
+            cachedGridColor = getComputedStyle(document.body).getPropertyValue('--grid-color').trim() || 'rgba(255, 255, 255, 0.055)';
+        }
+
+        function drawWarpGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const size = 32;
+            const threshold = 140;
+            const forceStrength = 18;
+
+            ctx.fillStyle = cachedGridColor;
+
+            mouseX += (targetX - mouseX) * 0.16;
+            mouseY += (targetY - mouseY) * 0.16;
+
+            for (let x = size / 2; x < canvas.width; x += size) {
+                for (let y = size / 2; y < canvas.height; y += size) {
+                    const dx = x - mouseX;
+                    const dy = y - mouseY;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    let posX = x;
+                    let posY = y;
+
+                    if (dist < threshold) {
+                        const force = (threshold - dist) / threshold;
+                        posX = x + (dx / dist) * force * forceStrength;
+                        posY = y + (dy / dist) * force * forceStrength;
+                    }
+
+                    ctx.beginPath();
+                    ctx.arc(posX, posY, 1.2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        function renderCanvas() {
+            drawWarpGrid();
+            requestAnimationFrame(renderCanvas);
+        }
+
+        function centerWindow() {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            const left = (w - windowBounds.width) / 2;
+            const top = (h - windowBounds.height) / 2;
+            
+            workspace.style.left = left + 'px';
+            workspace.style.top = top + 'px';
+            workspace.style.width = windowBounds.width + 'px';
+            workspace.style.height = windowBounds.height + 'px';
+            
+            windowBounds.left = left;
+            windowBounds.top = top;
+        }
+
+        function saveWindowState() {
+            const state = {
+                bounds: windowBounds,
+                isClosed: workspace.style.display === 'none',
+                isMinimized: workspace.classList.contains('minimized'),
+                isMaximized: workspace.classList.contains('maximized')
+            };
+            localStorage.setItem('k_aljalood_chronocode_station_state', JSON.stringify(state));
+        }
+
+        function loadWindowState() {
+            const saved = localStorage.getItem('k_aljalood_chronocode_station_state');
+            if (saved) {
+                try {
+                    const state = JSON.parse(saved);
+                    if (state) {
+                        if (state.bounds && typeof state.bounds.left === 'number' && typeof state.bounds.top === 'number' && typeof state.bounds.width === 'number' && typeof state.bounds.height === 'number') {
+                            windowBounds = state.bounds;
+                            if (windowBounds.left < -300 || windowBounds.left > window.innerWidth - 50 ||
+                                windowBounds.top < -50 || windowBounds.top > window.innerHeight - 50) {
+                                centerWindow();
+                            } else {
+                                workspace.style.width = windowBounds.width + 'px';
+                                workspace.style.height = windowBounds.height + 'px';
+                                workspace.style.left = windowBounds.left + 'px';
+                                workspace.style.top = windowBounds.top + 'px';
+                            }
+                        } else {
+                            centerWindow();
+                        }
+
+                        if (state.isMaximized) {
+                            workspace.classList.add('maximized');
+                            workspace.style.top = '10px';
+                            workspace.style.left = '10px';
+                            workspace.style.width = 'calc(100vw - 20px)';
+                            workspace.style.height = 'calc(100vh - 20px)';
+                        }
+
+                        if (state.isMinimized) {
+                            const winBody = workspace.querySelector('.window-body');
+                            winBody.style.height = '0px';
+                            winBody.style.flex = 'none';
+                            workspace.classList.add('minimized');
+                            workspace.style.height = (header.offsetHeight || 38) + 'px';
+                        }
+
+                        if (state.isClosed) {
+                            workspace.style.display = 'none';
+                            restoreBtn.classList.add('show');
+                        }
+                        return;
+                    }
+                } catch (e) {
+                    localStorage.removeItem('k_aljalood_chronocode_station_state');
+                }
+            }
+            centerWindow();
+        }
+
+        function adjustRestoreBtnPosition() {
+            const screenH = window.screen.height;
+            const availH = window.screen.availHeight;
+            const availT = window.screen.availTop || 0;
+
+            const screenW = window.screen.width;
+            const availW = window.screen.availWidth;
+            const availL = window.screen.availLeft || 0;
+
+            let bottomOffset = 24;
+            let rightOffset = 24;
+
+            if (availT === 0 && availH < screenH) {
+                bottomOffset += (screenH - availH);
+            }
+            if (availL === 0 && availW < screenW) {
+                rightOffset += (screenW - availW);
+            }
+
+            restoreBtn.style.bottom = bottomOffset + 'px';
+            restoreBtn.style.right = rightOffset + 'px';
+        }
+
+        function updateTabInfo() {
+            const elIcon = document.getElementById('tab-icon');
+            const elFilename = document.getElementById('tab-filename');
+            const elTabCode = document.getElementById('tab-code');
+            const elTabTitle = document.getElementById('tab-title');
+            
+            const oldWidth = elTabCode.getBoundingClientRect().width;
+            
+            elTabCode.style.transition = 'none';
+            elTabCode.style.width = 'auto';
+            
+            elIcon.textContent = tabIcons[currentLanguage];
+            elFilename.textContent = fileNames[currentLanguage];
+            
+            const newWidth = elTabCode.getBoundingClientRect().width;
+            
+            elTabCode.style.width = oldWidth + 'px';
+            elTabCode.offsetHeight;
+            
+            elTabCode.style.transition = '';
+            elTabCode.style.overflow = 'hidden';
+            elTabCode.style.width = newWidth + 'px';
+            
+            setTimeout(() => {
+                elTabCode.style.width = '';
+                elTabCode.style.overflow = '';
+            }, 360);
+
+            if (enableTabAnimation && elTabTitle) {
+                elTabTitle.classList.add('tab_anim');
+                setTimeout(() => {
+                    elTabTitle.classList.remove('tab_anim');
+                }, 350);
+            }
+        }
+
+        function applyEdgeTiltCheck() {
+            if (!workspace.classList.contains('maximized') && !workspace.classList.contains('minimized')) {
+                const rightEdgeLimit = window.innerWidth - 10 - workspace.offsetWidth;
+                const bottomEdgeLimit = window.innerHeight - 10 - workspace.offsetHeight;
+                
+                const isNearEdge = (windowBounds.left <= 10.5 || windowBounds.top <= 10.5 ||
+                                    windowBounds.left >= rightEdgeLimit - 0.5 ||
+                                    windowBounds.top >= bottomEdgeLimit - 0.5);
+
+                if (isNearEdge) {
+                    workspace.style.transform = 'rotateX(0deg) rotateY(0deg)';
+                }
+            }
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            targetX = e.clientX;
+            targetY = e.clientY;
+
+            if (isClosing) {
+                return;
+            } else if (isDragging) {
+                const dx = e.clientX - dragStartX;
+                const dy = e.clientY - dragStartY;
+                let newLeft = initialWindowX + dx;
+                let newTop = initialWindowY + dy;
+                
+                const snapThreshold = 25;
+                const rightEdge = window.innerWidth - 10 - workspace.offsetWidth;
+                const bottomEdge = window.innerHeight - 10 - workspace.offsetHeight;
+
+                if (Math.abs(newLeft - 10) < snapThreshold) {
+                    newLeft = 10;
+                } else if (Math.abs(newLeft - rightEdge) < snapThreshold) {
+                    newLeft = rightEdge;
+                }
+
+                if (Math.abs(newTop - 10) < snapThreshold) {
+                    newTop = 10;
+                } else if (Math.abs(newTop - bottomEdge) < snapThreshold) {
+                    newTop = bottomEdge;
+                }
+
+                newLeft = Math.max(10, Math.min(rightEdge, newLeft));
+                newTop = Math.max(10, Math.min(bottomEdge, newTop));
+
+                workspace.style.left = newLeft + 'px';
+                workspace.style.top = newTop + 'px';
+                
+                windowBounds.left = newLeft;
+                windowBounds.top = newTop;
+
+                const isNearEdge = (newLeft <= 10.5 || newTop <= 10.5 ||
+                                    newLeft >= rightEdge - 0.5 ||
+                                    newTop >= bottomEdge - 0.5);
+
+                if (isNearEdge) {
+                    workspace.style.transform = 'rotateX(0deg) rotateY(0deg)';
+                } else {
+                    const cx = window.innerWidth / 2;
+                    const cy = window.innerHeight / 2;
+                    const curDx = e.clientX - cx;
+                    const curDy = e.clientY - cy;
+                    const tiltX = cy > 0 ? (curDy / cy) * 4.5 : 0;
+                    const tiltY = cx > 0 ? -(curDx / cx) * 4.5 : 0;
+                    workspace.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+                }
+            } else if (isResizing && currentResizer) {
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                const R = 680 / 346;
+                let newW = startW;
+                let newH = startH;
+
+                let limitMaxH = window.innerHeight - 20;
+                let limitMaxW = window.innerWidth - 20;
+                let finalMaxW = limitMaxW;
+                let finalMaxH = Math.round(finalMaxW / R);
+                if (finalMaxH > limitMaxH) {
+                    finalMaxH = limitMaxH;
+                    finalMaxW = Math.round(finalMaxH * R);
+                }
+
+                let finalMinW = 420;
+                let finalMinH = Math.round(finalMinW / R);
+
+                if (currentResizer.classList.contains('resizer-r')) {
+                    newW = startW + dx;
+                } else if (currentResizer.classList.contains('resizer-l')) {
+                    newW = startW - dx;
+                } else if (currentResizer.classList.contains('resizer-b')) {
+                    newH = startH + dy;
+                    newW = Math.round(newH * R);
+                } else if (currentResizer.classList.contains('resizer-t')) {
+                    newH = startH - dy;
+                    newW = Math.round(newH * R);
+                } else if (currentResizer.classList.contains('resizer-br') || currentResizer.classList.contains('resizer-tr')) {
+                    newW = startW + dx;
+                } else if (currentResizer.classList.contains('resizer-bl') || currentResizer.classList.contains('resizer-tl')) {
+                    newW = startW - dx;
+                }
+
+                if (newW < finalMinW) newW = finalMinW;
+                if (newW > finalMaxW) newW = finalMaxW;
+
+                newH = Math.round(newW / R);
+
+                let newLeft = startLeft;
+                let newTop = startTop;
+
+                if (currentResizer.classList.contains('resizer-r')) {
+                    newLeft = startLeft;
+                    newTop = (startTop + startH / 2) - newH / 2;
+                } else if (currentResizer.classList.contains('resizer-l')) {
+                    newLeft = (startLeft + startW) - newW;
+                    newTop = (startTop + startH / 2) - newH / 2;
+                } else if (currentResizer.classList.contains('resizer-b')) {
+                    newLeft = (startLeft + startW / 2) - newW / 2;
+                    newTop = startTop;
+                } else if (currentResizer.classList.contains('resizer-t')) {
+                    newLeft = (startLeft + startW / 2) - newW / 2;
+                    newTop = (startTop + startH) - newH;
+                } else {
+                    if (currentResizer.classList.contains('resizer-bl') || currentResizer.classList.contains('resizer-tl')) {
+                        newLeft = startLeft + startW - newW;
+                    }
+                    if (currentResizer.classList.contains('resizer-tr') || currentResizer.classList.contains('resizer-tl')) {
+                        newTop = startTop + startH - newH;
+                    }
+                }
+
+                const snapThreshold = 25;
+                if (currentResizer.classList.contains('resizer-r')) {
+                    const rightEdge = newLeft + newW;
+                    if (Math.abs(rightEdge - (window.innerWidth - 10)) < snapThreshold) {
+                        newW = window.innerWidth - 10 - startLeft;
+                        newH = Math.round(newW / R);
+                        newTop = (startTop + startH / 2) - newH / 2;
+                    }
+                } else if (currentResizer.classList.contains('resizer-l')) {
+                    if (Math.abs(newLeft - 10) < snapThreshold) {
+                        newW = (startLeft + startW) - 10;
+                        newH = Math.round(newW / R);
+                        newLeft = 10;
+                        newTop = (startTop + startH / 2) - newH / 2;
+                    }
+                } else if (currentResizer.classList.contains('resizer-b')) {
+                    const bottomEdge = newTop + newH;
+                    if (Math.abs(bottomEdge - (window.innerHeight - 10)) < snapThreshold) {
+                        newH = window.innerHeight - 10 - startTop;
+                        newW = Math.round(newH * R);
+                        newH = Math.round(newW / R);
+                        newLeft = (startLeft + startW / 2) - newW / 2;
+                    }
+                } else if (currentResizer.classList.contains('resizer-t')) {
+                    if (Math.abs(newTop - 10) < snapThreshold) {
+                        newH = (startTop + startH) - 10;
+                        newW = Math.round(newH * R);
+                        newH = Math.round(newW / R);
+                        newTop = 10;
+                        newLeft = (startLeft + startW / 2) - newW / 2;
+                    }
+                } else if (currentResizer.classList.contains('resizer-br')) {
+                    if (Math.abs((newLeft + newW) - (window.innerWidth - 10)) < snapThreshold) {
+                        newW = window.innerWidth - 10 - startLeft;
+                        newH = Math.round(newW / R);
+                    } else if (Math.abs((newTop + newH) - (window.innerHeight - 10)) < snapThreshold) {
+                        newH = window.innerHeight - 10 - startTop;
+                        newW = Math.round(newH * R);
+                    }
+                    newLeft = startLeft;
+                    newTop = startTop;
+                } else if (currentResizer.classList.contains('resizer-bl')) {
+                    const targetRight = startLeft + startW;
+                    if (Math.abs(newLeft - 10) < snapThreshold) {
+                        newW = targetRight - 10;
+                        newH = Math.round(newW / R);
+                    } else if (Math.abs((newTop + newH) - (window.innerHeight - 10)) < snapThreshold) {
+                        newH = window.innerHeight - 10 - startTop;
+                        newW = Math.round(newH * R);
+                    }
+                    newLeft = targetRight - newW;
+                    newTop = startTop;
+                } else if (currentResizer.classList.contains('resizer-tr')) {
+                    const targetBottom = startTop + startH;
+                    if (Math.abs((newLeft + newW) - (window.innerWidth - 10)) < snapThreshold) {
+                        newW = window.innerWidth - 10 - startLeft;
+                        newH = Math.round(newW / R);
+                    } else if (Math.abs(newTop - 10) < snapThreshold) {
+                        newH = targetBottom - 10;
+                        newW = Math.round(newH * R);
+                    }
+                    newLeft = startLeft;
+                    newTop = targetBottom - newH;
+                } else if (currentResizer.classList.contains('resizer-tl')) {
+                    const targetRight = startLeft + startW;
+                    const targetBottom = startTop + startH;
+                    if (Math.abs(newLeft - 10) < snapThreshold) {
+                        newW = targetRight - 10;
+                        newH = Math.round(newW / R);
+                    } else if (Math.abs(newTop - 10) < snapThreshold) {
+                        newH = targetBottom - 10;
+                        newW = Math.round(newH * R);
+                    }
+                    newLeft = targetRight - newW;
+                    newTop = targetBottom - newH;
+                }
+
+                newLeft = Math.max(10, Math.min(window.innerWidth - 10 - newW, newLeft));
+                newTop = Math.max(10, Math.min(window.innerHeight - 10 - newH, newTop));
+
+                if (newW >= finalMaxW - 5 && newH >= finalMaxH - 5) {
+                    maximizeWindow(false);
+                    isResizing = false;
+                    return;
+                }
+
+                const rightEdgeLimit = window.innerWidth - 10 - newW;
+                const bottomEdgeLimit = window.innerHeight - 10 - newH;
+                const isNearEdge = (newLeft <= 10.5 || newTop <= 10.5 ||
+                                    newLeft >= rightEdgeLimit - 0.5 ||
+                                    newTop >= bottomEdgeLimit - 0.5);
+
+                if (isNearEdge) {
+                    workspace.style.transform = 'rotateX(0deg) rotateY(0deg)';
+                } else {
+                    const cx = window.innerWidth / 2;
+                    const cy = window.innerHeight / 2;
+                    const dx = e.clientX - cx;
+                    const dy = e.clientY - cy;
+                    const tiltX = cy > 0 ? (dy / cy) * 4.5 : 0;
+                    const tiltY = cx > 0 ? -(dx / cx) * 4.5 : 0;
+                    workspace.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+                }
+
+                workspace.style.width = newW + 'px';
+                workspace.style.height = newH + 'px';
+                workspace.style.left = newLeft + 'px';
+                workspace.style.top = newTop + 'px';
+
+                windowBounds.width = newW;
+                windowBounds.height = newH;
+                windowBounds.left = newLeft;
+                windowBounds.top = newTop;
+            } else {
+                if (!workspace.classList.contains('maximized') && !workspace.classList.contains('minimized')) {
+                    const rightEdgeLimit = window.innerWidth - 10 - workspace.offsetWidth;
+                    const bottomEdgeLimit = window.innerHeight - 10 - workspace.offsetHeight;
+                    
+                    const isNearEdge = (windowBounds.left <= 10.5 || windowBounds.top <= 10.5 ||
+                                        windowBounds.left >= rightEdgeLimit - 0.5 ||
+                                        windowBounds.top >= bottomEdgeLimit - 0.5);
+
+                    if (isNearEdge) {
+                        workspace.style.transform = 'rotateX(0deg) rotateY(0deg)';
+                    } else {
+                        const cx = window.innerWidth / 2;
+                        const cy = window.innerHeight / 2;
+                        const dx = e.clientX - cx;
+                        const dy = e.clientY - cy;
+                        const tiltX = cy > 0 ? (dy / cy) * 4.5 : 0;
+                        const tiltY = cx > 0 ? -(dx / cx) * 4.5 : 0;
+                        workspace.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                saveWindowState();
+                applyEdgeTiltCheck();
+            }
+            if (isResizing) {
+                isResizing = false;
+                saveWindowState();
+                applyEdgeTiltCheck();
+            }
+        });
+
+        window.addEventListener('mouseout', (e) => {
+            if (isClosing || isTransitioning) return;
+            if (e.relatedTarget === null) {
+                workspace.style.transform = 'rotateX(0deg) rotateY(0deg)';
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            adjustRestoreBtnPosition();
+        });
+
+        function triggerAnimationTransition() {
+            workspace.classList.add('animating');
+            setTimeout(() => {
+                workspace.classList.remove('animating');
+            }, 500);
+        }
+
+        function closeWindow() {
+            if (isTransitioning) return;
+            isTransitioning = true;
+            isClosing = true;
+            triggerAnimationTransition();
+            
+            const isMax = workspace.classList.contains('maximized');
+            const isMin = workspace.classList.contains('minimized');
+            const curLeft = isMax ? 10 : windowBounds.left;
+            const curTop = isMax ? 10 : windowBounds.top;
+            const curWidth = isMax ? window.innerWidth - 20 : windowBounds.width;
+            const curHeight = isMax ? window.innerHeight - 20 : (isMin ? header.offsetHeight : windowBounds.height);
+            
+            const bottomOffset = parseInt(restoreBtn.style.bottom) || 24;
+            const rightOffset = parseInt(restoreBtn.style.right) || 24;
+            const targetX = window.innerWidth - rightOffset - 27;
+            const targetY = window.innerHeight - bottomOffset - 27;
+
+            const winCenterX = curLeft + curWidth / 2;
+            const winCenterY = curTop + curHeight / 2;
+            const destX = targetX - winCenterX;
+            const destY = targetY - winCenterY;
+            
+            workspace.style.transform = `translate(${destX}px, ${destY}px) scale(0.05)`;
+            workspace.style.opacity = '0';
+            workspace.style.pointerEvents = 'none';
+            
+            setTimeout(() => {
+                workspace.style.display = 'none';
+                restoreBtn.classList.add('show');
+                isTransitioning = false;
+                saveWindowState();
+            }, 500);
+        }
+
+        function restoreWindow() {
+            if (isTransitioning) return;
+            isTransitioning = true;
+            restoreBtn.classList.remove('show');
+            workspace.style.display = 'flex';
+            workspace.style.opacity = '0';
+
+            const isMax = workspace.classList.contains('maximized');
+            const isMin = workspace.classList.contains('minimized');
+            const curLeft = isMax ? 10 : windowBounds.left;
+            const curTop = isMax ? 10 : windowBounds.top;
+            const curWidth = isMax ? window.innerWidth - 20 : windowBounds.width;
+            const curHeight = isMax ? window.innerHeight - 20 : (isMin ? header.offsetHeight : windowBounds.height);
+
+            const bottomOffset = parseInt(restoreBtn.style.bottom) || 24;
+            const rightOffset = parseInt(restoreBtn.style.right) || 24;
+            const rx = window.innerWidth - rightOffset - 27;
+            const ry = window.innerHeight - bottomOffset - 27;
+
+            const winCenterX = curLeft + curWidth / 2;
+            const winCenterY = curTop + curHeight / 2;
+            const transX = rx - winCenterX;
+            const transY = ry - winCenterY;
+
+            workspace.style.left = curLeft + 'px';
+            workspace.style.top = curTop + 'px';
+            workspace.style.transform = `translate(${transX}px, ${transY}px) scale(0.05)`;
+            
+            setTimeout(() => {
+                triggerAnimationTransition();
+                workspace.style.opacity = '1';
+                workspace.style.transform = 'translate(0px, 0px) scale(1) rotateX(0deg) rotateY(0deg)';
+                workspace.style.pointerEvents = 'auto';
+                setTimeout(() => {
+                    isClosing = false;
+                    isTransitioning = false;
+                    saveWindowState();
+                }, 500);
+            }, 50);
+        }
+
+        function minimizeWindow() {
+            if (isTransitioning) return;
+            isTransitioning = true;
+            isClosing = true;
+            triggerAnimationTransition();
+            workspace.style.transform = 'rotateX(0deg) rotateY(0deg)';
+            
+            const isMin = workspace.classList.contains('minimized');
+            const winBody = workspace.querySelector('.window-body');
+            
+            if (!isMin) {
+                winBody.style.height = winBody.offsetHeight + 'px';
+                winBody.style.flex = 'none';
+                
+                workspace.style.height = (header.offsetHeight || 38) + 'px';
+                workspace.classList.add('minimized');
+            } else {
+                let targetHeight = windowBounds.height;
+                let targetWidth = windowBounds.width;
+                let currentTop = parseInt(workspace.style.top) || 0;
+                let currentLeft = parseInt(workspace.style.left) || 0;
+                
+                let maxTop = window.innerHeight - 10 - targetHeight;
+                let maxLeft = window.innerWidth - 10 - targetWidth;
+                
+                if (currentTop > maxTop) {
+                    currentTop = Math.max(10, maxTop);
+                    workspace.style.top = currentTop + 'px';
+                    windowBounds.top = currentTop;
+                }
+                if (currentLeft > maxLeft) {
+                    currentLeft = Math.max(10, maxLeft);
+                    workspace.style.left = currentLeft + 'px';
+                    windowBounds.left = currentLeft;
+                }
+
+                let targetWorkspaceHeight = workspace.classList.contains('maximized') ? (window.innerHeight - 20) : targetHeight;
+                let headerH = header.offsetHeight || 38;
+                let exactBodyH = targetWorkspaceHeight - 2 - headerH;
+                winBody.style.height = exactBodyH + 'px';
+                winBody.style.flex = 'none';
+
+                workspace.classList.remove('minimized');
+                if (workspace.classList.contains('maximized')) {
+                    workspace.style.height = 'calc(100vh - 20px)';
+                } else {
+                    workspace.style.height = targetHeight + 'px';
+                }
+                
+                setTimeout(() => {
+                    if (!workspace.classList.contains('minimized')) {
+                        winBody.style.height = '';
+                        winBody.style.flex = '';
+                    }
+                }, 500);
+            }
+            
+            setTimeout(() => {
+                isClosing = false;
+                isTransitioning = false;
+                saveWindowState();
+            }, 500);
+        }
+
+        function maximizeWindow(bypassAnimation = false) {
+            if (isTransitioning && !bypassAnimation) return;
+            if (!bypassAnimation) {
+                isTransitioning = true;
+                isClosing = true;
+                triggerAnimationTransition();
+            }
+            
+            const winBody = workspace.querySelector('.window-body');
+            if (workspace.classList.contains('minimized')) {
+                workspace.classList.remove('minimized');
+                winBody.style.height = '';
+                winBody.style.flex = '';
+            }
+            
+            if (workspace.classList.contains('maximized')) {
+                workspace.classList.remove('maximized');
+                workspace.style.top = windowBounds.top + 'px';
+                workspace.style.left = windowBounds.left + 'px';
+                workspace.style.width = windowBounds.width + 'px';
+                workspace.style.height = windowBounds.height + 'px';
+            } else {
+                workspace.classList.add('maximized');
+                workspace.style.transform = 'rotateX(0deg) rotateY(0deg)';
+                workspace.style.top = '10px';
+                workspace.style.left = '10px';
+                workspace.style.width = 'calc(100vw - 20px)';
+                workspace.style.height = 'calc(100vh - 20px)';
+            }
+            if (!bypassAnimation) {
+                setTimeout(() => {
+                    isClosing = false;
+                    isTransitioning = false;
+                    saveWindowState();
+                }, 500);
+            } else {
+                saveWindowState();
+            }
+        }
+
+        function generateStaticTemplate(lang) {
+            switch (lang) {
+                case 'javascript':
+                    return `<span class="syntax-keyword">import</span> { chronos } <span class="syntax-keyword">from</span> <span class="syntax-string">'quantum'</span>;
+
+<span class="syntax-keyword">export</span> <span class="syntax-keyword">class</span> <span class="syntax-property">LocalTimeState</span> {
+    <span class="syntax-keyword">constructor</span>() {
+        <span class="syntax-keyword">this</span>.<span class="syntax-property">epoch</span> = <span class="syntax-number dyn-epoch"></span>;
+        <span class="syntax-keyword">this</span>.<span class="syntax-property">year</span> = <span class="syntax-number dyn-year"></span>;
+        <span class="syntax-keyword">this</span>.<span class="syntax-property">month</span> = <span class="syntax-string">"<span class="dyn-month"></span>"</span>;
+        <span class="syntax-keyword">this</span>.<span class="syntax-property">day</span> = <span class="syntax-string">"<span class="dyn-day"></span>"</span>;
+        <span class="syntax-keyword">this</span>.<span class="syntax-property">time</span> = <span class="syntax-string">"<span class="dyn-time"></span>"</span>;
+        <span class="syntax-keyword">this</span>.<span class="syntax-property">isWeekend</span> = <span class="syntax-keyword dyn-weekend"></span>;
+        <span class="syntax-keyword">this</span>.<span class="syntax-property">progress</span> = <span class="syntax-number dyn-progress-no-pct"></span>;
+    }
+}`;
+                case 'typescript':
+                    return `<span class="syntax-keyword">import</span> { Chronos } <span class="syntax-keyword">from</span> <span class="syntax-string">'quantum'</span>;
+
+<span class="syntax-keyword">export</span> <span class="syntax-keyword">class</span> <span class="syntax-property">LocalTimeState</span> {
+    <span class="syntax-keyword">readonly</span> <span class="syntax-property">epoch</span>: <span class="syntax-keyword">number</span> = <span class="syntax-number dyn-epoch"></span>;
+    <span class="syntax-keyword">readonly</span> <span class="syntax-property">year</span>: <span class="syntax-keyword">number</span> = <span class="syntax-number dyn-year"></span>;
+    <span class="syntax-keyword">readonly</span> <span class="syntax-property">month</span>: <span class="syntax-keyword">string</span> = <span class="syntax-string">"<span class="dyn-month"></span>"</span>;
+    <span class="syntax-keyword">readonly</span> <span class="syntax-property">day</span>: <span class="syntax-keyword">string</span> = <span class="syntax-string">"<span class="dyn-day"></span>"</span>;
+    <span class="syntax-keyword">readonly</span> <span class="syntax-property">time</span>: <span class="syntax-keyword">string</span> = <span class="syntax-string">"<span class="dyn-time"></span>"</span>;
+    <span class="syntax-keyword">readonly</span> <span class="syntax-property">isWeekend</span>: <span class="syntax-keyword">boolean</span> = <span class="syntax-keyword dyn-weekend"></span>;
+    <span class="syntax-keyword">readonly</span> <span class="syntax-property">progress</span>: <span class="syntax-keyword">number</span> = <span class="syntax-keyword dyn-progress-no-pct"></span>;
+}`;
+                case 'python':
+                    return `<span class="syntax-keyword">from</span> quantum <span class="syntax-keyword">import</span> chronos
+
+<span class="syntax-keyword">class</span> <span class="syntax-property">LocalTimeState</span>:
+    <span class="syntax-keyword">def</span> <span class="syntax-property">__init__</span>(<span class="syntax-keyword">self</span>):
+        <span class="syntax-keyword">self</span>.<span class="syntax-property">epoch</span> = <span class="syntax-number dyn-epoch"></span>
+        <span class="syntax-keyword">self</span>.<span class="syntax-property">year</span> = <span class="syntax-number dyn-year"></span>
+        <span class="syntax-keyword">self</span>.<span class="syntax-property">month</span> = <span class="syntax-string">"<span class="dyn-month"></span>"</span>
+        <span class="syntax-keyword">self</span>.<span class="syntax-property">day</span> = <span class="syntax-string">"<span class="dyn-day"></span>"</span>
+        <span class="syntax-keyword">self</span>.<span class="syntax-property">time</span> = <span class="syntax-string">"<span class="dyn-time"></span>"</span>
+        <span class="syntax-keyword">self</span>.<span class="syntax-property">is_weekend</span> = <span class="syntax-keyword dyn-weekend"></span>
+        <span class="syntax-keyword">self</span>.<span class="syntax-property">progress</span> = <span class="syntax-number dyn-progress-no-pct"></span>`;
+                case 'csharp':
+                    return `<span class="syntax-keyword">using</span> System;
+<span class="syntax-keyword">using</span> Quantum;
+
+<span class="syntax-keyword">namespace</span> <span class="syntax-property">ChronoCode</span> {
+    <span class="syntax-keyword">public</span> <span class="syntax-keyword">class</span> <span class="syntax-property">TimeState</span> {
+        <span class="syntax-keyword">public</span> <span class="syntax-keyword">long</span> <span class="syntax-property">Epoch</span> = <span class="syntax-number dyn-epoch"></span>;
+        <span class="syntax-keyword">public</span> <span class="syntax-keyword">int</span> <span class="syntax-property">Year</span> = <span class="syntax-number dyn-year"></span>;
+        <span class="syntax-keyword">public</span> <span class="syntax-keyword">string</span> <span class="syntax-property">Month</span> = <span class="syntax-string">"<span class="dyn-month"></span>"</span>;
+        <span class="syntax-keyword">public</span> <span class="syntax-keyword">string</span> <span class="syntax-property">Day</span> = <span class="syntax-string">"<span class="dyn-day"></span>"</span>;
+        <span class="syntax-keyword">public</span> <span class="syntax-keyword">string</span> <span class="syntax-property">Time</span> = <span class="syntax-string">"<span class="dyn-time"></span>"</span>;
+        <span class="syntax-keyword">public</span> <span class="syntax-keyword">bool</span> <span class="syntax-property">IsWeekend</span> = <span class="syntax-keyword dyn-weekend"></span>;
+        <span class="syntax-keyword">public</span> <span class="syntax-keyword">double</span> <span class="syntax-property">Progress</span> = <span class="syntax-number dyn-progress-no-pct"></span>;
+    }
+}`;
+                case 'cpp':
+                    return `<span class="syntax-keyword">#include</span> <span class="syntax-string">&lt;quantum.hpp&gt;</span>
+
+<span class="syntax-keyword">int</span> <span class="syntax-property">main</span>() {
+    <span class="syntax-keyword">auto</span> <span class="syntax-property">epoch</span> = <span class="syntax-number dyn-epoch"></span>;
+    <span class="syntax-keyword">auto</span> <span class="syntax-property">year</span> = <span class="syntax-number dyn-year"></span>;
+    <span class="syntax-keyword">auto</span> <span class="syntax-property">month</span> = <span class="syntax-string">"<span class="dyn-month"></span>"</span>;
+    <span class="syntax-keyword">auto</span> <span class="syntax-property">day</span> = <span class="syntax-string">"<span class="dyn-day"></span>"</span>;
+    <span class="syntax-keyword">auto</span> <span class="syntax-property">time</span> = <span class="syntax-string">"<span class="dyn-time"></span>"</span>;
+    <span class="syntax-keyword">auto</span> <span class="syntax-property">is_weekend</span> = <span class="syntax-keyword dyn-weekend"></span>;
+    <span class="syntax-keyword">auto</span> <span class="syntax-property">progress</span> = <span class="syntax-number dyn-progress-no-pct"></span>;
+}`;
+                case 'rust':
+                    return `<span class="syntax-keyword">use</span> quantum::chronos;
+
+<span class="syntax-keyword">pub</span> <span class="syntax-keyword">fn</span> <span class="syntax-property">main</span>() {
+    <span class="syntax-keyword">let</span> <span class="syntax-property">epoch</span> = <span class="syntax-number dyn-epoch"></span>;
+    <span class="syntax-keyword">let</span> <span class="syntax-property">year</span> = <span class="syntax-number dyn-year"></span>;
+    <span class="syntax-keyword">let</span> <span class="syntax-property">month</span> = <span class="syntax-string">"<span class="dyn-month"></span>"</span>;
+    <span class="syntax-keyword">let</span> <span class="syntax-property">day</span> = <span class="syntax-string">"<span class="dyn-day"></span>"</span>;
+    <span class="syntax-keyword">let</span> <span class="syntax-property">time</span> = <span class="syntax-string">"<span class="dyn-time"></span>"</span>;
+    <span class="syntax-keyword">let</span> <span class="syntax-property">is_weekend</span> = <span class="syntax-keyword dyn-weekend"></span>;
+    <span class="syntax-keyword">let</span> <span class="syntax-property">progress</span> = <span class="syntax-number dyn-progress-no-pct"></span>;
+}`;
+                case 'html':
+                    return `<span class="syntax-keyword">&lt;div</span> <span class="syntax-property">class</span>=<span class="syntax-string">"chronos-panel"</span><span class="syntax-keyword">&gt;</span>
+    <span class="syntax-keyword">&lt;span</span> <span class="syntax-property">id</span>=<span class="syntax-string">"epoch"</span><span class="syntax-keyword">&gt;</span><span class="syntax-number dyn-epoch"></span><span class="syntax-keyword">&lt;/span&gt;</span>
+    <span class="syntax-keyword">&lt;span</span> <span class="syntax-property">id</span>=<span class="syntax-string">"year"</span><span class="syntax-keyword">&gt;</span><span class="syntax-number dyn-year"></span><span class="syntax-keyword">&lt;/span&gt;</span>
+    <span class="syntax-keyword">&lt;span</span> <span class="syntax-property">id</span>=<span class="syntax-string">"month"</span><span class="syntax-keyword">&gt;</span><span class="syntax-string">"<span class="dyn-month"></span>"</span><span class="syntax-keyword">&lt;/span&gt;</span>
+    <span class="syntax-keyword">&lt;span</span> <span class="syntax-property">id</span>=<span class="syntax-string">"day"</span><span class="syntax-keyword">&gt;</span><span class="syntax-string">"<span class="dyn-day"></span>"</span><span class="syntax-keyword">&lt;/span&gt;</span>
+    <span class="syntax-keyword">&lt;span</span> <span class="syntax-property">id</span>=<span class="syntax-string">"time"</span><span class="syntax-keyword">&gt;</span><span class="syntax-string">"<span class="dyn-time"></span>"</span><span class="syntax-keyword">&lt;/span&gt;</span>
+    <span class="syntax-keyword">&lt;span</span> <span class="syntax-property">id</span>=<span class="syntax-string">"weekend"</span><span class="syntax-keyword">&gt;</span><span class="syntax-keyword dyn-weekend"></span><span class="syntax-keyword">&lt;/span&gt;</span>
+    <span class="syntax-keyword">&lt;span</span> <span class="syntax-property">id</span>=<span class="syntax-string">"progress"</span><span class="syntax-keyword">&gt;</span><span class="syntax-number dyn-progress"></span><span class="syntax-keyword">&lt;/span&gt;</span>
+<span class="syntax-keyword">&lt;/div&gt;</span>`;
+            }
+        }
+
+        function generateConfigTemplate() {
+            return `{
+    <span class="syntax-property">"theme"</span>: <span class="syntax-string config-clickable" data-config="theme">"${currentTheme}"</span>,
+    <span class="syntax-property">"layout"</span>: <span class="syntax-string config-clickable" data-config="layout">"${currentLayout}"</span>
+}`;
+        }
+
+        function updateConfigTemplate() {
+            const codeHTML = generateConfigTemplate();
+            const lines = codeHTML.split('\n');
+            let viewportHTML = '';
+
+            for (let i = 0; i < lines.length; i++) {
+                const lineContent = lines[i];
+                const animStyle = enableCodeAnimation 
+                    ? `animation: chronoCodeSlide 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: ${i * 20}ms;` 
+                    : 'animation: none;';
+
+                viewportHTML += `
+                    <div class="code-line" style="${animStyle}">
+                        <div class="line-number">${i + 1}</div>
+                        <div class="line-content">${lineContent}</div>
+                    </div>
+                `;
+            }
+            elEditorViewport.innerHTML = viewportHTML;
+            domRefs = {};
+        }
+
+        function updateLanguageTemplate() {
+            const codeHTML = generateStaticTemplate(currentLanguage);
+            const lines = codeHTML.split('\n');
+            let viewportHTML = '';
+
+            for (let i = 0; i < lines.length; i++) {
+                const lineContent = lines[i];
+                const isTimeLine = lineContent.includes('time') || lineContent.includes('id="time"');
+                
+                const animStyle = enableCodeAnimation 
+                    ? `animation: chronoCodeSlide 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: ${i * 20}ms;` 
+                    : 'animation: none;';
+
+                viewportHTML += `
+                    <div class="code-line ${isTimeLine ? 'active' : ''}" style="${animStyle}">
+                        <div class="line-number">${i + 1}</div>
+                        <div class="line-content">${lineContent}</div>
+                    </div>
+                `;
+            }
+            elEditorViewport.innerHTML = viewportHTML;
+
+            domRefs = {
+                epoch: elEditorViewport.querySelector('.dyn-epoch'),
+                year: elEditorViewport.querySelector('.dyn-year'),
+                month: elEditorViewport.querySelector('.dyn-month'),
+                day: elEditorViewport.querySelector('.dyn-day'),
+                time: elEditorViewport.querySelector('.dyn-time'),
+                weekend: elEditorViewport.querySelector('.dyn-weekend'),
+                progress: elEditorViewport.querySelector('.dyn-progress'),
+                progressNoPct: elEditorViewport.querySelector('.dyn-progress-no-pct')
+            };
+        }
+
+        function runMainEngine() {
+            const now = new Date();
+            const ms = now.getMilliseconds();
+            const s = now.getSeconds();
+            const m = now.getMinutes();
+            const h = now.getHours();
+
+            const padS = String(s).padStart(2, '0');
+            const padM = String(m).padStart(2, '0');
+            const padH = String(h).padStart(2, '0');
+            
+            const epochVal = Math.floor(now.getTime() / 1000);
+            const yearVal = now.getFullYear();
+            const monthVal = months[now.getMonth()];
+            const dayVal = days[now.getDay()];
+            const timeVal = `${padH}:${padM}:${padS}`;
+
+            const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const diffMs = now - startOfDay;
+            const dayProgress = (diffMs / 86400000) * 100;
+            const progressVal = dayProgress.toFixed(4);
+
+            const isWeekendVal = (now.getDay() === 0 || now.getDay() === 6);
+            const isWeekendStr = currentLanguage === 'python' ? (isWeekendVal ? 'True' : 'False') : (isWeekendVal ? 'true' : 'false');
+
+            if (domRefs.epoch) domRefs.epoch.textContent = epochVal;
+            if (domRefs.year) domRefs.year.textContent = yearVal;
+            if (domRefs.month) domRefs.month.textContent = monthVal;
+            if (domRefs.day) domRefs.day.textContent = dayVal;
+            if (domRefs.time) domRefs.time.textContent = timeVal;
+            if (domRefs.weekend) domRefs.weekend.textContent = isWeekendStr;
+            if (domRefs.progress) domRefs.progress.textContent = progressVal + '%';
+            if (domRefs.progressNoPct) domRefs.progressNoPct.textContent = progressVal;
+
+            const degS = (s + ms / 1000) * 6;
+            const degM = (m + s / 60) * 6;
+            const degH = ((h % 12) + m / 60) * 30;
+
+            elHandSecond.style.transform = `rotate(${degS}deg)`;
+            elHandMinute.style.transform = `rotate(${degM}deg)`;
+            elHandHour.style.transform = `rotate(${degH}deg)`;
+
+            const circumference = 2 * Math.PI * 85;
+            const preciseSeconds = s + ms / 1000;
+            const secOffset = circumference - (preciseSeconds / 60) * circumference;
+            elSecRing.style.strokeDashoffset = secOffset;
+
+            requestAnimationFrame(runMainEngine);
+        }
+
+        function applyInterfaceUpdates() {
+            const hasNoTransitions = document.body.classList.contains('no-transitions');
+            document.body.className = '';
+            if (hasNoTransitions) {
+                document.body.classList.add('no-transitions');
+            }
+            document.body.classList.add(`theme-${currentTheme}`);
+            
+            const isMinimized = workspace.classList.contains('minimized');
+            const isMaximized = workspace.classList.contains('maximized');
+            const isReady = workspace.classList.contains('ready');
+            const isSwitching = workspace.classList.contains('switching-layout');
+            
+            workspace.className = 'workspace';
+            workspace.classList.add(`layout-${currentLayout}`);
+            if (isMinimized) workspace.classList.add('minimized');
+            if (isMaximized) workspace.classList.add('maximized');
+            if (isReady) workspace.classList.add('ready');
+            if (isSwitching) workspace.classList.add('switching-layout');
+
+            updateCachedGridColor();
+        }
+
+        function resetInteractionState() {
+            isDragging = false;
+            isResizing = false;
+            isClosing = false;
+            isTransitioning = false;
+            currentResizer = null;
+            if (workspace) {
+                if (workspace.style.display !== 'none') {
+                    workspace.style.pointerEvents = 'auto';
+                }
+                workspace.style.transform = 'rotateX(0deg) rotateY(0deg)';
+            }
+        }
+
+        window.addEventListener('focus', resetInteractionState);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                resetInteractionState();
+            }
+        });
+
+        resizeCanvas();
+        adjustRestoreBtnPosition();
+        loadWindowState();
+        resolveTheme();
+        resolveLayout();
+        applyInterfaceUpdates();
+        updateTabInfo();
+        switchToTab(activeTabId);
+        runMainEngine();
+        renderCanvas();
+
+        let lastAvailHeight = window.screen.availHeight;
+        let lastAvailWidth = window.screen.availWidth;
+        setInterval(() => {
+            if (window.screen.availHeight !== lastAvailHeight || window.screen.availWidth !== lastAvailWidth) {
+                lastAvailHeight = window.screen.availHeight;
+                lastAvailWidth = window.screen.availWidth;
+                adjustRestoreBtnPosition();
+            }
+        }, 500);
+
+        setTimeout(() => {
+            if (isInitialLoad) {
+                document.body.classList.remove('no-transitions');
+                workspace.classList.add('ready');
+                isInitialLoad = false;
+            }
+        }, 50);
+    </script>
+</body>
+</html>
